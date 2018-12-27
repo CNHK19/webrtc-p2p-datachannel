@@ -158,10 +158,17 @@
       }
       if (turnUri) {
         if (stunUri) {
-          config.push({
-            url: 'turn:user@turn.webrtcbook.com',
-            credential: 'test'
-          })
+          //config.push({
+          //  url: 'stun:stunserver.org',
+          //  credential: 'test'
+          //})
+		  
+		  config.push({"url":"stun:10.1.7.142:3478",
+                   "urls":"stun:stun.10.1.7.142:3478",
+                   "username":"zhangxinbo",
+                   "credential":"0x9bdd64fbfc04d799fcda77a4999d34eb"
+				   })
+		  
         } else {
           config.push({
             url: 'turn:user@turn-only.webrtcbook.com',
