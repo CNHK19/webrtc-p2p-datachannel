@@ -20,6 +20,7 @@ handle['/'] = notFound
 handle['connect'] = requestHandlers.connect
 handle['send'] = requestHandlers.send
 handle['get'] = requestHandlers.get
+handle['transmit']=requestHandlers.transmit
 
 server.serveFilePath('static')
 server.start(handle, port)

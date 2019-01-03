@@ -4,6 +4,7 @@ var signalHelper=require('./Signal')
 var connections = {},   // 链接列表
   partner = {},       // 用于在对等端进行映射
   messagesFor = {};   // 包含要发送给客户的消息的数组
+  wsColl={};          //客户端websocket连接
 
 // 排队发送json响应
 function webrtcResponse(response, res) {
@@ -39,6 +40,7 @@ function connect(info) {
       thisConnection = connections[query.key]
       thisConnection.status = 'waiting'
       thisConnection.ids = [newId()]
+      wsColl[thisConnection.ids[0]]=ws_client;
       webrtcResponse(signalHelper.createSignal('connect',{
         id: thisConnection.ids[0],
         status: thisConnection.status
@@ -46,6 +48,7 @@ function connect(info) {
     },
     connectSecondParty = function () {
       thisConnection.ids[1] = newId()
+      wsColl[thisConnection.ids[1]]=ws_client;
       partner[thisConnection.ids[0]] = thisConnection.ids[1]
       partner[thisConnection.ids[1]] = thisConnection.ids[0]
       messagesFor[thisConnection.ids[0]] = []
@@ -55,6 +58,13 @@ function connect(info) {
         id: thisConnection.ids[1],
         status: thisConnection.status
       },false), ws_client)
+
+
+      var req=signalHelper.createSignal('connect',{
+        id: thisConnection.ids[0],
+        status: 'connected'
+      },true);
+      wsColl[thisConnection.ids[0]].send(JSON.stringify(req));
     }
   log('Request handler connect was called.')
   if (query && query.key) {
@@ -130,3 +140,41 @@ function getMessages(info) {
 }
 
 exports.get = getMessages
+
+
+function transmitMessage(info) {
+  log('PostData received is *** ' + info.params + ' ***')
+  var postData = info.params,
+    res = info.ws;
+  if (typeof postData === 'undefined') {
+    webrtcError('No posted data in JSON format!', res)
+    return
+  }
+  if (typeof (postData.message) === 'undefined') {
+    webrtcError('No message received!', res)
+    return
+  }
+  if (typeof (postData.id) === 'undefined') {
+    webrtcError('No id received with message!', res)
+    return
+  }
+  if (typeof (partner[postData.id]) === 'undefined') {
+    webrtcError('Invalid id ' + postData.id, res)
+    return
+  }
+  if (typeof (messagesFor[partner[postData.id]]) === 'undefined') {
+    webrtcError('Invalid id ' + postData.id, res)
+    return
+  }
+  
+  var parterID=partner[postData.id]
+  postData.id=parterID
+  var msg=signalHelper.createSignal("transmit",postData,true)
+  wsColl[parterID].send(JSON.stringify(msg))
+
+  //wsColl[partner[postData.id]].push(postData.message)
+  log('Saving message *** ' + postData.message + ' *** for delivery to id ' + partner[postData.id])
+  //webrtcResponse('Saving message *** ' + postData.message + ' *** for delivery to id ' + partner[postData.id], res)
+}
+
+exports.transmit = transmitMessage
