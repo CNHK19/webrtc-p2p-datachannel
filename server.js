@@ -5,15 +5,38 @@ var fs = require('fs')
 var log = require('./log').log
 var serveFileDir = ''
 
-// 设置静态文件的路径
-function setServeFilePath(path) {
-  serveFileDir = path
+
+var ws_client;
+function start_websocketserver(handle, port)
+{
+  var WebSocketServer = require('ws').Server,
+  wss = new WebSocketServer({ port: port });
+  log("WebSocket have stared on "+port);
+
+  wss.on('connection', function (ws) {
+      log('client connected '+ws._socket.remoteAddress+'：'+ ws._socket.remotePort);
+      ws_client=ws;
+
+      ws_client.on('message', function (message) {
+         var msg=JSON.parse(message);
+         var info={ws:ws_client,params:msg.params};
+         handleCustom(handle,msg.signal,info);
+      });
+      ws_client.on('error', function (err) {
+        log("client error "+err);
+      });
+      ws_client.on('close', function () {
+        log("client close");
+      });
+      ws_client.on('open', function () {
+        log("client open");
+      });
+
+  });
 }
 
-exports.serveFilePath = setServeFilePath
-
 // 创建路由处理程序
-function start(handle, port) {
+function start_web(handle, port) {
   function onRequest(req, res) {
     var urlData = url.parse(req.url, true),
       pathName = urlData.pathname,
@@ -30,8 +53,15 @@ function start(handle, port) {
   }
 
   http.createServer(onRequest).listen(port)
-  log('Server started on port ' + port)
+  log('WebServer started on port ' + port)
 }
+
+function start(handle, port)
+{
+    start_web(handle,port);
+    start_websocketserver(handle,port+1);
+}
+
 
 exports.start = start
 
@@ -45,7 +75,8 @@ function route(handle, pathName, info) {
     if (!err && stats.isFile()) {   // 处理静态文件
       serveFile(filePath, info)
     } else {    // 必须为自定义路径
-      handleCustom(handle, pathName, info)
+      console.log("can not process http request, pathName="+pathName);
+      //handleCustom(handle, pathName, info)
     }
   })
 }
@@ -137,3 +168,10 @@ function addQuery(str, query) {
   } 
   return str
 }
+
+// 设置静态文件的路径
+function setServeFilePath(path) {
+  serveFileDir = path
+}
+exports.serveFilePath = setServeFilePath
+

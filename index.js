@@ -17,9 +17,9 @@ var handle = {}
 
 handle['/'] = notFound
 
-handle['/connect'] = requestHandlers.connect
-handle['/send'] = requestHandlers.send
-handle['/get'] = requestHandlers.get
+handle['connect'] = requestHandlers.connect
+handle['send'] = requestHandlers.send
+handle['get'] = requestHandlers.get
 
 server.serveFilePath('static')
 server.start(handle, port)

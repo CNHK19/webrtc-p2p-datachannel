@@ -1,4 +1,5 @@
 var log = require('./log').log
+var signalHelper=require('./Signal')
 
 var connections = {},   // 链接列表
   partner = {},       // 用于在对等端进行映射
@@ -7,10 +8,10 @@ var connections = {},   // 链接列表
 // 排队发送json响应
 function webrtcResponse(response, res) {
   log('Replying with webrtc response ' + JSON.stringify(response))
-  res.writeHead(200, { 'Content-Type': 'application/json' })
-  res.write(JSON.stringify(response))
-  res.end()
+  res.send(JSON.stringify(response))
 }
+
+
 
 // webrtc发送error响应
 function webrtcError(err, res) {
@@ -20,8 +21,8 @@ function webrtcError(err, res) {
 
 // 处理XHR http请求，以使用给定密钥进行连接
 function connect(info) {
-  var res = info.res,
-    query = info.query,
+  var ws_client = info.ws,
+    query = info.params,
     thisConnection,
     newId = function () {
       return Math.floor(Math.random() * 1000000000)
@@ -38,10 +39,10 @@ function connect(info) {
       thisConnection = connections[query.key]
       thisConnection.status = 'waiting'
       thisConnection.ids = [newId()]
-      webrtcResponse({
+      webrtcResponse(signalHelper.createSignal('connect',{
         id: thisConnection.ids[0],
         status: thisConnection.status
-      }, res)
+      },false), ws_client)
     },
     connectSecondParty = function () {
       thisConnection.ids[1] = newId()
@@ -50,10 +51,10 @@ function connect(info) {
       messagesFor[thisConnection.ids[0]] = []
       messagesFor[thisConnection.ids[1]] = []
       thisConnection.status = 'connected'
-      webrtcResponse({
+      webrtcResponse(signalHelper.createSignal('connect',{
         id: thisConnection.ids[1],
         status: thisConnection.status
-      }, res)
+      },false), ws_client)
     }
   log('Request handler connect was called.')
   if (query && query.key) {
