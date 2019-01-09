@@ -1,0 +1,4 @@
+﻿Webrtc 权威指南中的示例代码
+
+改Demo使用WebSocket传输信令
+需修改clientWSSignaling中61行 WebSocket服务器的IP地址
